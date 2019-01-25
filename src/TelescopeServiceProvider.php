@@ -4,9 +4,9 @@ namespace Laravel\Telescope;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Telescope\Contracts\ClearableRepository;
 use Laravel\Telescope\Contracts\EntriesRepository;
 use Laravel\Telescope\Contracts\PrunableRepository;
-use Laravel\Telescope\Contracts\ClearableRepository;
 use Laravel\Telescope\Storage\DatabaseEntriesRepository;
 
 class TelescopeServiceProvider extends ServiceProvider
@@ -28,7 +28,8 @@ class TelescopeServiceProvider extends ServiceProvider
         Telescope::listenForStorageOpportunities($this->app);
 
         $this->loadViewsFrom(
-            __DIR__.'/../resources/views', 'telescope'
+            __DIR__ . '/../resources/views',
+            'telescope'
         );
     }
 
@@ -40,7 +41,7 @@ class TelescopeServiceProvider extends ServiceProvider
     private function registerRoutes()
     {
         Route::group($this->routeConfiguration(), function () {
-            $this->loadRoutesFrom(__DIR__.'/Http/routes.php');
+            $this->loadRoutesFrom(__DIR__ . '/Http/routes.php');
         });
     }
 
@@ -66,7 +67,7 @@ class TelescopeServiceProvider extends ServiceProvider
     private function registerMigrations()
     {
         if ($this->app->runningInConsole() && $this->shouldMigrate()) {
-            $this->loadMigrationsFrom(__DIR__.'/Storage/migrations');
+            $this->loadMigrationsFrom(__DIR__ . '/Storage/migrations');
         }
     }
 
@@ -79,15 +80,19 @@ class TelescopeServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../public' => public_path('vendor/telescope'),
+                __DIR__ . '/Storage/migrations' => database_path('migrations'),
+            ], 'telescope-migrations');
+
+            $this->publishes([
+                __DIR__ . '/../public' => public_path('vendor/telescope'),
             ], 'telescope-assets');
 
             $this->publishes([
-                __DIR__.'/../config/telescope.php' => config_path('telescope.php'),
+                __DIR__ . '/../config/telescope.php' => config_path('telescope.php'),
             ], 'telescope-config');
 
             $this->publishes([
-                __DIR__.'/../stubs/TelescopeServiceProvider.stub' => app_path('Providers/TelescopeServiceProvider.php'),
+                __DIR__ . '/../stubs/TelescopeServiceProvider.stub' => app_path('Providers/TelescopeServiceProvider.php'),
             ], 'telescope-provider');
         }
     }
@@ -100,7 +105,8 @@ class TelescopeServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../config/telescope.php', 'telescope'
+            __DIR__ . '/../config/telescope.php',
+            'telescope'
         );
 
         $this->registerStorageDriver();
@@ -122,7 +128,7 @@ class TelescopeServiceProvider extends ServiceProvider
     {
         $driver = config('telescope.driver');
 
-        if (method_exists($this, $method = 'register'.ucfirst($driver).'Driver')) {
+        if (method_exists($this, $method = 'register' . ucfirst($driver) . 'Driver')) {
             $this->$method();
         }
     }
@@ -135,15 +141,18 @@ class TelescopeServiceProvider extends ServiceProvider
     protected function registerDatabaseDriver()
     {
         $this->app->singleton(
-            EntriesRepository::class, DatabaseEntriesRepository::class
+            EntriesRepository::class,
+            DatabaseEntriesRepository::class
         );
 
         $this->app->singleton(
-            ClearableRepository::class, DatabaseEntriesRepository::class
+            ClearableRepository::class,
+            DatabaseEntriesRepository::class
         );
 
         $this->app->singleton(
-            PrunableRepository::class, DatabaseEntriesRepository::class
+            PrunableRepository::class,
+            DatabaseEntriesRepository::class
         );
 
         $this->app->when(DatabaseEntriesRepository::class)
@@ -158,6 +167,6 @@ class TelescopeServiceProvider extends ServiceProvider
      */
     protected function shouldMigrate()
     {
-        return config('telescope.driver') === 'database' && config('app.env') !== 'testing';
+        return Telescope::$runsMigrations && config('telescope.driver') === 'database' && config('app.env') !== 'testing';
     }
 }
